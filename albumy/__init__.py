@@ -18,6 +18,14 @@ def create_app(config_name=None):
     app = Flask('albumy')
     app.config.from_object(config[config_name])
 
+    regiseter_extentions(app)
+    register_blueprints(app)
+    register_shell_context(app)
+    register_errorhandlers(app)
+    register_commands(app)
+
+    return app
+
 
 def regiseter_extentions(app):
     db.init_app(app)
@@ -79,4 +87,13 @@ def register_commands(app):
     @app.cli.command()
     @click.option('--user', default=10)
     def forge(user):
-        pass  # TODO
+
+        from albumy.fakes import fake_admin, fake_users
+
+        db.drop_all()
+        db.create_all()
+
+        fake_admin()
+        fake_users(user)
+
+        click.echo('Done')
