@@ -1,6 +1,11 @@
 from urllib.parse import urlparse, urljoin
 
-from flask import request, redirect
+from flask import request, redirect, current_app
+from itsdangerous import JSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
+
+from albumy.models import User
+from albumy.extensions import db
+from albumy.settings import Operation
 
 
 def is_safe_url(target):
@@ -16,3 +21,40 @@ def redirect_back(default='main.index', **kwargs):
         if is_safe_url(target):
             return redirect(target)
     return redirect(default, **kwargs)
+
+
+def generate_token(user, operation, expire_in=None, **kwargs):
+    s = Serializer(current_app.config['SECRET_KEY'], expire_in)
+
+    data = {'id': user.id, 'operation': operation}
+    data.update(**kwargs)
+    return s.dumps(data)
+
+
+def validate_token(user, token, operation, new_password=None):
+    s = Serializer(current_app.config['SECRET_KEY'])
+
+    try:
+        data = s.loads(token)
+    except (SignatureExpired, BadSignature):
+        return False
+
+    if operation != data.get('operation') or user.id != data.get('id'):
+        return False
+
+    if operation == Operation.CONFIRM:
+        user.confirmed = True
+    elif operation == Operation.CHANGE_EMAIL:
+        new_email = data.get('new_email')
+        if User.query.filter_by(email=new_email).first():
+            return False
+        if new_email is None:
+            return False
+        user.email = new_email
+    elif operation == Operation.RESET_PASSWORD:
+        user.password_hash = user.set_password(new_password)
+    else:
+        return False
+
+    db.session.commit()
+    return True

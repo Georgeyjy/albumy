@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from albumy.extensions import db
 
 
-class User(UserMixin):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, index=True)
     email = db.Column(db.String(254), unique=True, index=True)
@@ -21,5 +21,5 @@ class User(UserMixin):
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
+    def validate_password(self, password):
         return check_password_hash(self.password_hash, password)
