@@ -5,7 +5,7 @@ import os
 from urllib.parse import urlparse, urljoin
 
 from PIL import Image
-from flask import request, redirect, current_app
+from flask import request, redirect, current_app, flash
 from itsdangerous import JSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 
 from albumy.models import User
@@ -84,3 +84,11 @@ def rename_image(old_filename):
     new_filename = uuid.uuid4().hex + ext
     return new_filename
 
+
+def flash_errors(form):
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(u"Error in the %s field - %s" % (
+                getattr(form, field).label.text,
+                error
+            ))

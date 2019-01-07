@@ -12,6 +12,7 @@ class Operation:
 class BaseConfig:
     ALBUMY_ADMIN_EMAIL = os.getenv('ALBUMY_ADMIN', 'test@123.com')
     ALBUMY_MAIL_SUBJECT_PREFIX = '[Albumy]'
+
     ALBUMY_UPLOAD_PATH = os.path.join(basedir, 'uploads')
     ALBUMY_PHOTO_SIZE = {'small': 400,
                          'medium': 800}
@@ -19,6 +20,11 @@ class BaseConfig:
         ALBUMY_PHOTO_SIZE['small']: '_s',
         ALBUMY_PHOTO_SIZE['medium']: '_m',
     }
+
+    ALBUMY_PHOTO_PER_PAGE = 12
+
+    AVATARS_SAVE_PATH = os.path.join(ALBUMY_UPLOAD_PATH, 'avatars')
+    AVATARS_SIZE_TUPLE = (30, 100, 200)
 
     SECRET_KEY = os.getenv('SECRET_KET', 'hakunamatata')
 

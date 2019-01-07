@@ -8,7 +8,7 @@ from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
 from albumy.models import User, Role
 from albumy.settings import config
-from albumy.extensions import db, bootstrap, login_manager, mail, moment, csrf, dropzone
+from albumy.extensions import db, bootstrap, login_manager, mail, moment, csrf, dropzone, avatars
 
 
 def create_app(config_name=None):
@@ -35,6 +35,7 @@ def regiseter_extentions(app):
     moment.init_app(app)
     csrf.init_app(app)
     dropzone.init_app(app)
+    avatars.init_app(app)
 
 
 def register_blueprints(app):
