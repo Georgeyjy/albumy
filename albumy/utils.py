@@ -1,5 +1,10 @@
+import uuid
+
+import PIL
+import os
 from urllib.parse import urlparse, urljoin
 
+from PIL import Image
 from flask import request, redirect, current_app
 from itsdangerous import JSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 
@@ -58,3 +63,24 @@ def validate_token(user, token, operation, new_password=None):
 
     db.session.commit()
     return True
+
+
+def resize_image(image, filename, width):
+    filename, ext = os.path.splitext(filename)
+    img = Image.open(image)
+    if img.size[0] < width:
+        return filename + ext
+    resize_percentage = (width / float(img.size[0]))
+    resized_hight = int(float(img.size[1]) * float(resize_percentage))
+    img = img.resize((width, resized_hight), PIL.Image.ANTIALIAS)
+
+    filename += current_app.config['ALBUMY_PHOTO_SUFFIX'][width] + ext
+    img.save(os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename), optimize=True, quality=85)
+    return filename
+
+
+def rename_image(old_filename):
+    ext = os.path.splitext(old_filename)[1]
+    new_filename = uuid.uuid4().hex + ext
+    return new_filename
+

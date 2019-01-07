@@ -12,6 +12,13 @@ class Operation:
 class BaseConfig:
     ALBUMY_ADMIN_EMAIL = os.getenv('ALBUMY_ADMIN', 'test@123.com')
     ALBUMY_MAIL_SUBJECT_PREFIX = '[Albumy]'
+    ALBUMY_UPLOAD_PATH = os.path.join(basedir, 'uploads')
+    ALBUMY_PHOTO_SIZE = {'small': 400,
+                         'medium': 800}
+    ALBUMY_PHOTO_SUFFIX = {
+        ALBUMY_PHOTO_SIZE['small']: '_s',
+        ALBUMY_PHOTO_SIZE['medium']: '_m',
+    }
 
     SECRET_KEY = os.getenv('SECRET_KET', 'hakunamatata')
 
@@ -23,6 +30,11 @@ class BaseConfig:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = ('Bluelog Admin', MAIL_USERNAME)
+
+    DROPZONE_ALLOWED_FILE_TYPE = 'image'
+    DROPZONE_MAX_FILE_SIZE = 3
+    DROPZONE_MAX_FILES = 30
+    DROPZONE_ENABLE_CSRF = True
 
 
 class DevelopmentConfig(BaseConfig):
