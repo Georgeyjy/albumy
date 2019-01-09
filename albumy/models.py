@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from flask import current_app
@@ -27,10 +28,10 @@ class Role(db.Model):
     @staticmethod
     def init_role():
         roles_permissions_map = {
-            'Locked': ['FOLLOW', 'FAVORITE'],
-            'User': ['FOLLOW', 'FAVORITE', 'COMMENT', 'UPLOAD'],
-            'Moderator': ['FOLLOW', 'FAVORITE', 'COMMENT', 'UPLOAD', 'MODERATE'],
-            'Administrator': ['FOLLOW', 'FAVORITE', 'COMMENT', 'UPLOAD', 'MODERATE', 'ADMINISTER']
+            'Locked': ['FOLLOW', 'COLLECT'],
+            'User': ['FOLLOW', 'COLLECT', 'COMMENT', 'UPLOAD'],
+            'Moderator': ['FOLLOW', 'COLLECT', 'COMMENT', 'UPLOAD', 'MODERATE'],
+            'Administrator': ['FOLLOW', 'COLLECT', 'COMMENT', 'UPLOAD', 'MODERATE', 'ADMINISTER']
         }
 
         for role_name in roles_permissions_map:
@@ -118,6 +119,7 @@ class Photo(db.Model):
     filename_m = db.Column(db.String(64))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    flag= db.Column(db.Integer, default=0)
     can_comment = db.Column(db.Boolean, default=True)
 
     author = db.relationship('User', back_populates='photos')
@@ -135,14 +137,23 @@ class Tag(db.Model):
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     flag = db.Column(db.Integer, default=0)
 
     replied_id = db.Column(db.Integer, db.ForeignKey('comment.id'))
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     photo_id = db.Column(db.Integer, db.ForeignKey('photo.id'))
 
+    replied = db.relationship('Comment', back_populates='replies', remote_side=[id])
+    replies = db.relationship('Comment', back_populates='replied', cascade='all')
     photo = db.relationship('Photo', back_populates='comments')
     author = db.relationship('User', back_populates='comments')
-    replies = db.relationship('Comment', back_populates='replied', cascade='all')
-    replied = db.relationship('Comment', back_populates='replies', remote_side=[id])
+
+
+@db.event.listens_for(Photo, 'after_delete', named=True)
+def delete_photo(**kwargs):
+    target = kwargs['target']
+    for filename in [target.filename, target.filename_s, target.filename_m]:
+        path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
+        if os.path.exists(path):
+            os.remove(path)

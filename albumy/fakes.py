@@ -39,3 +39,4 @@ def fake_users(count=10):
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
+
