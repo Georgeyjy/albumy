@@ -3,9 +3,11 @@ import os
 import click
 from flask import Flask, render_template
 
+from albumy.blueprints.ajax import ajax_bp
 from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
+from albumy.fakes import fake_comment, fake_collect, fake_photo, fake_tag, fake_follow
 from albumy.models import User, Role
 from albumy.settings import config
 from albumy.extensions import db, bootstrap, login_manager, mail, moment, csrf, dropzone, avatars
@@ -18,7 +20,7 @@ def create_app(config_name=None):
     app = Flask('albumy')
     app.config.from_object(config[config_name])
 
-    regiseter_extentions(app)
+    register_extensions(app)
     register_blueprints(app)
     register_shell_context(app)
     register_errorhandlers(app)
@@ -27,7 +29,7 @@ def create_app(config_name=None):
     return app
 
 
-def regiseter_extentions(app):
+def register_extensions(app):
     db.init_app(app)
     bootstrap.init_app(app)
     login_manager.init_app(app)
@@ -42,6 +44,7 @@ def register_blueprints(app):
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp, url_prefix='/user')
+    app.register_blueprint(ajax_bp, url_prefix='/ajax')
 
 
 def register_shell_context(app):
@@ -99,5 +102,10 @@ def register_commands(app):
         Role.init_role()
         fake_admin()
         fake_users(user)
+        fake_tag()
+        fake_photo()
+        fake_comment()
+        fake_collect()
+        fake_follow()
 
         click.echo('Done')

@@ -49,6 +49,24 @@ class Role(db.Model):
         db.session.commit()
 
 
+class Collect(db.Model):
+    collector_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    collected_id = db.Column(db.Integer, db.ForeignKey('photo.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    collector = db.relationship('User', back_populates='collections', lazy='joined')
+    collected = db.relationship('Photo', back_populates='collectors', lazy='joined')
+
+
+class Follow(db.Model):
+    followed_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    followed = db.relationship('User', back_populates='followers', foreign_keys=[followed_id], lazy='joined')
+    follower = db.relationship('User', back_populates='following', foreign_keys=[follower_id], lazy='joined')
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, index=True)
@@ -69,11 +87,17 @@ class User(db.Model, UserMixin):
     role = db.relationship('Role', back_populates='users')
     comments = db.relationship('Comment', back_populates='author', cascade='all')
     photos = db.relationship('Photo', back_populates='author', cascade='all')
+    collections = db.relationship('Collect', back_populates='collector', cascade='all')
+    following = db.relationship('Follow', back_populates='follower', foreign_keys=[Follow.follower_id],
+                                cascade='all', lazy='dynamic')
+    followers = db.relationship('Follow', back_populates='followed', foreign_keys=[Follow.followed_id],
+                                cascade='all', lazy='dynamic')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         self.set_role()
         self.generate_avatar()
+        self.follow(self)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -88,6 +112,41 @@ class User(db.Model, UserMixin):
 
     def validate_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def collect(self, photo):
+        if not self.is_collecting(photo):
+            collect = Collect(collected=photo, collector=self)
+            db.session.add(collect)
+            db.session.commit()
+
+    def uncollect(self, photo):
+        collect = Collect.query.with_parent(self).filter_by(collected_id=photo.id).first()
+        if collect:
+            db.session.delete(collect)
+            db.session.commit()
+
+    def is_collecting(self, photo):
+        return Collect.query.with_parent(self).filter_by(collected_id=photo.id).first() is not None
+
+    def follow(self, user):
+        if not self.is_following(user):
+            follow = Follow(followed=user, follower=self)
+            db.session.add(follow)
+            db.session.commit()
+
+    def unfollow(self, user):
+        follow = Follow.query.filter_by(followed_id=user.id).first()
+        if follow:
+            db.session.delete(follow)
+            db.session.commit()
+
+    def is_following(self, user):
+        if user.id is None:
+            return False
+        return self.following.filter_by(followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
 
     def generate_avatar(self):
         avatar = Identicon()
@@ -125,6 +184,7 @@ class Photo(db.Model):
     author = db.relationship('User', back_populates='photos')
     tags = db.relationship('Tag', secondary=tagging, back_populates='photos')
     comments = db.relationship('Comment', back_populates='photo', cascade='all')
+    collectors = db.relationship('Collect', back_populates='collected', cascade='all')
 
 
 class Tag(db.Model):
