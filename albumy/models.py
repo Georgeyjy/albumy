@@ -92,6 +92,7 @@ class User(db.Model, UserMixin):
                                 cascade='all', lazy='dynamic')
     followers = db.relationship('Follow', back_populates='followed', foreign_keys=[Follow.followed_id],
                                 cascade='all', lazy='dynamic')
+    notifications = db.relationship('Notification', back_populates='receiver', cascade='all')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -178,7 +179,7 @@ class Photo(db.Model):
     filename_m = db.Column(db.String(64))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    flag= db.Column(db.Integer, default=0)
+    flag = db.Column(db.Integer, default=0)
     can_comment = db.Column(db.Boolean, default=True)
 
     author = db.relationship('User', back_populates='photos')
@@ -208,6 +209,17 @@ class Comment(db.Model):
     replies = db.relationship('Comment', back_populates='replied', cascade='all')
     photo = db.relationship('Photo', back_populates='comments')
     author = db.relationship('User', back_populates='comments')
+
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    receiver = db.relationship('User', back_populates='notifications')
 
 
 @db.event.listens_for(Photo, 'after_delete', named=True)

@@ -6,7 +6,8 @@ from flask_login import login_required, current_user
 from albumy.extensions import db
 from albumy.decorators import confirm_required, permission_required
 from albumy.forms.main import CommentForm, DescriptionForm, TagForm
-from albumy.models import Photo, Comment, Tag, Collect, User
+from albumy.models import Photo, Comment, Tag, Collect, User, Notification
+from albumy.notifications import push_collect_notification, push_comment_notification
 from albumy.utils import rename_image, resize_image, flash_errors, redirect_back
 
 main_bp = Blueprint('main', __name__)
@@ -21,6 +22,20 @@ def index():
 def explore():
     return render_template('main/explore.html')
 
+
+@main_bp.route('/notifications')
+@login_required
+def show_notifications():
+    page = request.args.get('page', 1, type=int)
+    per_page = current_app.config['ALBUMY_NOTIFICATION_PER_PAGE']
+    notifications = Notification.query.with_parent(current_user)
+    filter_rule = request.args.get('filter')
+    if filter_rule == 'unread':
+        notifications = notifications.filter_by(is_read=False)
+
+    pagination = notifications.order_by(Notification.timestamp.desc()).paginate(page, per_page)
+    notifications = pagination.items
+    return render_template('main/notifications.html', pagination=pagination, notifications=notifications)
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
 @login_required
@@ -161,6 +176,10 @@ def new_comment(photo_id):
         db.session.commit()
         flash('Comment published!', 'success')
 
+        if current_user != photo.author:
+            push_comment_notification(photo_id, receiver=photo.author, page=page)
+
+    flash_errors(form)
     return redirect(url_for('.show_photo', photo_id=photo_id, page=page))
 
 
@@ -280,6 +299,8 @@ def collect(photo_id):
         return redirect(url_for('.show_photo', photo_id=photo_id))
     current_user.collect(photo)
     flash('Photo collected', 'success')
+    if current_user != photo.author:
+        push_collect_notification(collector=current_user, photo_id=photo_id, receiver=photo.author)
     return redirect(url_for('.show_photo', photo_id=photo_id))
 
 
