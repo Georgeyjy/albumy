@@ -37,6 +37,29 @@ def show_notifications():
     notifications = pagination.items
     return render_template('main/notifications.html', pagination=pagination, notifications=notifications)
 
+
+@main_bp.route('/notification/read/<int:notification_id>', methods=['POST'])
+@login_required
+def read_notification(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    if current_user != notification.receiver:
+        abort(403)
+
+    notification.is_read = True
+    db.session.commit()
+    flash('Notification archived', 'success')
+    return redirect(url_for('.show_notifications'))
+
+
+@main_bp.route('/notifications/read/all', methods=['POST'])
+def read_all_notification():
+    for notification in current_user.notifications:
+        notification.is_read = True
+    db.session.commit()
+    flash('All notifications archived.', 'success')
+    return redirect(url_for('.show_notifications'))
+
+
 @main_bp.route('/upload', methods=['GET', 'POST'])
 @login_required
 @confirm_required
@@ -176,7 +199,7 @@ def new_comment(photo_id):
         db.session.commit()
         flash('Comment published!', 'success')
 
-        if current_user != photo.author:
+        if current_user != photo.author and photo.author.receive_collect_notification:
             push_comment_notification(photo_id, receiver=photo.author, page=page)
 
     flash_errors(form)
@@ -299,7 +322,7 @@ def collect(photo_id):
         return redirect(url_for('.show_photo', photo_id=photo_id))
     current_user.collect(photo)
     flash('Photo collected', 'success')
-    if current_user != photo.author:
+    if current_user != photo.author and photo.author.receive_collect_notification:
         push_collect_notification(collector=current_user, photo_id=photo_id, receiver=photo.author)
     return redirect(url_for('.show_photo', photo_id=photo_id))
 

@@ -7,7 +7,7 @@ from faker import Faker
 from flask import current_app
 
 from albumy.extensions import db
-from albumy.models import Tag, Photo, Comment, User
+from albumy.models import Tag, Photo, Comment, User, Notification
 
 fake = Faker()
 
@@ -22,6 +22,8 @@ def fake_admin():
         confirmed=True
     )
     admin.set_password('123456')
+    notification = Notification(message='Hello, welcome to Albumy.', receiver=admin)
+    db.session.add(notification)
     db.session.add(admin)
     db.session.commit()
 

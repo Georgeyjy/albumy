@@ -78,9 +78,16 @@ class User(db.Model, UserMixin):
     location = db.Column(db.String(50))
     member_since = db.Column(db.DateTime, default=datetime.utcnow)
     confirmed = db.Column(db.Boolean, default=False)
+
     avatar_s = db.Column(db.String(64))
     avatar_m = db.Column(db.String(64))
     avatar_l = db.Column(db.String(64))
+    avatar_raw = db.Column(db.String(64))
+
+    public_collections = db.Column(db.Boolean, default=True)
+    receive_comment_notification = db.Column(db.Boolean, default=True)
+    receive_follow_notification = db.Column(db.Boolean, default=True)
+    receive_collect_notification = db.Column(db.Boolean, default=True)
 
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
 
@@ -89,7 +96,8 @@ class User(db.Model, UserMixin):
     photos = db.relationship('Photo', back_populates='author', cascade='all')
     collections = db.relationship('Collect', back_populates='collector', cascade='all')
     following = db.relationship('Follow', back_populates='follower', foreign_keys=[Follow.follower_id],
-                                cascade='all', lazy='dynamic')
+                                cascade='all', lazy='dyn'
+                                                    'amic')
     followers = db.relationship('Follow', back_populates='followed', foreign_keys=[Follow.followed_id],
                                 cascade='all', lazy='dynamic')
     notifications = db.relationship('Notification', back_populates='receiver', cascade='all')
@@ -228,4 +236,13 @@ def delete_photo(**kwargs):
     for filename in [target.filename, target.filename_s, target.filename_m]:
         path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
         if os.path.exists(path):
+            os.remove(path)
+
+
+@db.event.listens_for(User, 'after_delete', named=True)
+def delete_avatar(**kwargs):
+    target = kwargs['target']
+    for filename in [target.avatar_s, target.avatar_m, target.avatar_l, target.avatar_raw]:
+        path = os.path.join(current_app.config['AVATARS_SAVE_PATH'], filename)
+        if os.path.exists(filename):
             os.remove(path)

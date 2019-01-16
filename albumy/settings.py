@@ -37,6 +37,7 @@ class BaseConfig:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    MAX_CONTENT_LENGTH = 3 * 1024 * 1024
     MAIL_SERVER = os.getenv('MAIL_SERVER')
     MAIL_PORT = 587
     MAIL_USE_SSL = True
