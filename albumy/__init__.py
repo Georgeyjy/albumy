@@ -2,15 +2,16 @@ import os
 
 import click
 from flask import Flask, render_template
+from flask_login import current_user
 
 from albumy.blueprints.ajax import ajax_bp
 from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
 from albumy.fakes import fake_comment, fake_collect, fake_photo, fake_tag, fake_follow
-from albumy.models import User, Role
+from albumy.models import User, Role, Notification
 from albumy.settings import config
-from albumy.extensions import db, bootstrap, login_manager, mail, moment, csrf, dropzone, avatars
+from albumy.extensions import db, bootstrap, login_manager, mail, moment, csrf, dropzone, avatars, whooshee
 
 
 def create_app(config_name=None):
@@ -38,6 +39,7 @@ def register_extensions(app):
     csrf.init_app(app)
     dropzone.init_app(app)
     avatars.init_app(app)
+    whooshee.init_app(app)
 
 
 def register_blueprints(app):
@@ -54,7 +56,13 @@ def register_shell_context(app):
 
 
 def register_template_context(app):
-    pass
+    @app.context_processor
+    def make_template_context():
+        if current_user.is_authenticated:
+            notification_count = Notification.query.with_parent(current_user).filter_by(is_read=False).count()
+        else:
+            notification_count = None
+        return dict(notification_count=notification_count)
 
 
 def register_errorhandlers(app):

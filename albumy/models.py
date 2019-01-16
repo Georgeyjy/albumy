@@ -6,7 +6,7 @@ from flask_avatars import Identicon
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from albumy.extensions import db
+from albumy.extensions import db, whooshee
 
 roles_permissions = db.Table('roles_permissions',
                              db.Column('role_id', db.Integer, db.ForeignKey('role.id')),
@@ -67,6 +67,7 @@ class Follow(db.Model):
     follower = db.relationship('User', back_populates='following', foreign_keys=[follower_id], lazy='joined')
 
 
+@whooshee.register_model('username', 'name')
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, index=True)
@@ -179,6 +180,7 @@ tagging = db.Table('tagging',
                    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id')))
 
 
+@whooshee.register_model('description')
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(500))
@@ -196,6 +198,7 @@ class Photo(db.Model):
     collectors = db.relationship('Collect', back_populates='collected', cascade='all')
 
 
+@whooshee.register_model('name')
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)

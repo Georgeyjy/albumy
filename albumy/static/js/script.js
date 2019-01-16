@@ -227,5 +227,4 @@ $(function () {
 
     $("[data-toggle='tooltip']").tooltip({title: moment($(this).data('timestamp')).format('lll')})
 
-    update_notifications_count()
 });

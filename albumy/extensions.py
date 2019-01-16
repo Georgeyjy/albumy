@@ -6,6 +6,7 @@ from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_dropzone import Dropzone
 from flask_wtf import CSRFProtect
+from flask_whooshee import Whooshee
 
 bootstrap = Bootstrap()
 db = SQLAlchemy()
@@ -15,6 +16,7 @@ moment = Moment()
 csrf = CSRFProtect()
 dropzone = Dropzone()
 avatars = Avatars()
+whooshee = Whooshee()
 
 @login_manager.user_loader
 def load_user(user_id):

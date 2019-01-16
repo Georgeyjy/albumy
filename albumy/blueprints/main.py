@@ -2,11 +2,12 @@ import os
 
 from flask import Blueprint, render_template, request, current_app, send_from_directory, flash, redirect, url_for, abort
 from flask_login import login_required, current_user
+from sqlalchemy import func
 
 from albumy.extensions import db
 from albumy.decorators import confirm_required, permission_required
 from albumy.forms.main import CommentForm, DescriptionForm, TagForm
-from albumy.models import Photo, Comment, Tag, Collect, User, Notification
+from albumy.models import Photo, Comment, Tag, Collect, User, Notification, Follow
 from albumy.notifications import push_collect_notification, push_comment_notification
 from albumy.utils import rename_image, resize_image, flash_errors, redirect_back
 
@@ -15,12 +16,44 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    return render_template('main/index.html')
+    if current_user.is_authenticated:
+        followed_photos = Photo.query.join(Follow, Follow.followed_id == Photo.author_id).\
+            filter(Follow.follower_id == current_user.id).order_by(Photo.timestamp.desc())
+        page = request.args.get('page', 1, type=int)
+        per_page = current_app.config['ALBUMY_PHOTO_PER_PAGE']
+        pagination = followed_photos.paginate(page, per_page)
+        photos = pagination.items
+    else:
+        photos = None
+        pagination = None
+    tags = Tag.query.join(Tag.photos).group_by(Tag.id).order_by(func.count(Photo.id).desc()).limit(10)
+    return render_template('main/index.html', photos=photos, pagination=pagination, tags=tags)
 
 
 @main_bp.route('/explore')
 def explore():
-    return render_template('main/explore.html')
+    photos = Photo.query.order_by(func.random()).limit(12)
+    return render_template('main/explore.html', photos=photos)
+
+
+@main_bp.route('/search')
+def search():
+    q = request.args.get('q', '')
+    if q == '':
+        flash('Please enter a keyword', 'warning')
+        return redirect_back()
+
+    category = request.args.get('category', 'photo')
+    page = request.args.get('page', 1, type=int)
+    per_page = current_app.config['ALBUMY_SEARCH_RESULT_PER_PAGE']
+    if category == 'user':
+        pagination = User.query.whooshee_search(q).paginate(page, per_page)
+    elif category == 'tag':
+        pagination = Tag.query.whooshee_search(q).paginate(page, per_page)
+    else:
+        pagination = Photo.query.whooshee_search(q).paginate(page, per_page)
+    results = pagination.items
+    return render_template('main/search.html', results=results, pagination=pagination, q=q, category=category)
 
 
 @main_bp.route('/notifications')
