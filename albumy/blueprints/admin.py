@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, flash, request, current_app
 from flask_login import login_required
 
-from albumy import db
+from albumy.extensions import db
 from albumy.decorators import permission_required, admin_required
 from albumy.models import Photo, User, Tag, Comment, Role
 from albumy.utils import redirect_back
