@@ -78,13 +78,15 @@ class User(db.Model, UserMixin):
     bio = db.Column(db.String(120))
     location = db.Column(db.String(50))
     member_since = db.Column(db.DateTime, default=datetime.utcnow)
-    confirmed = db.Column(db.Boolean, default=False)
 
     avatar_s = db.Column(db.String(64))
     avatar_m = db.Column(db.String(64))
     avatar_l = db.Column(db.String(64))
     avatar_raw = db.Column(db.String(64))
 
+    confirmed = db.Column(db.Boolean, default=False)
+    locked = db.Column(db.Boolean, default=False)
+    active = db.Column(db.Boolean, default=True)
     public_collections = db.Column(db.Boolean, default=True)
     receive_comment_notification = db.Column(db.Boolean, default=True)
     receive_follow_notification = db.Column(db.Boolean, default=True)
@@ -170,9 +172,31 @@ class User(db.Model, UserMixin):
     def is_admin(self):
         return self.role.name == 'Administrator'
 
+    @property
+    def is_active(self):
+        return self.active
+
     def can(self, permission_name):
         permission = Permission.query.filter_by(name=permission_name).first()
         return permission is not None and self.role is not None and permission in self.role.permissions
+
+    def lock(self):
+        self.locked = True
+        self.role = Role.query.filter_by(name='Locked').first()
+        db.session.commit()
+
+    def unlock(self):
+        self.locked = False
+        self.role = Role.query.filter_by(name='User').first()
+        db.session.commit()
+
+    def block(self):
+        self.active = False
+        db.session.commit()
+
+    def unblock(self):
+        self.active = True
+        db.session.commit()
 
 
 tagging = db.Table('tagging',

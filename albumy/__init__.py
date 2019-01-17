@@ -1,9 +1,10 @@
 import os
 
 import click
-from flask import Flask, render_template
-from flask_login import current_user
+from flask import Flask, render_template, redirect, url_for, flash
+from flask_login import current_user, logout_user
 
+from albumy.blueprints.admin import admin_bp
 from albumy.blueprints.ajax import ajax_bp
 from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
@@ -24,7 +25,9 @@ def create_app(config_name=None):
     register_extensions(app)
     register_blueprints(app)
     register_shell_context(app)
+    register_template_context(app)
     register_errorhandlers(app)
+    register_hooks(app)
     register_commands(app)
 
     return app
@@ -47,6 +50,7 @@ def register_blueprints(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(ajax_bp, url_prefix='/ajax')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
 
 
 def register_shell_context(app):
@@ -63,6 +67,15 @@ def register_template_context(app):
         else:
             notification_count = None
         return dict(notification_count=notification_count)
+
+
+def register_hooks(app):
+    @app.before_request
+    def before_request():
+        if not current_user.is_active:
+            logout_user(current_user)
+            flash('Your account is blocked.', 'warning')
+            return redirect(url_for('main.index'))
 
 
 def register_errorhandlers(app):

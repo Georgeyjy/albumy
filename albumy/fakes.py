@@ -16,7 +16,7 @@ def fake_admin():
     admin = User(
         name='Yang',
         username='yangjianyu',
-        email='george_yjy@163.com',
+        email='test@123.com',
         bio=fake.sentence(),
         website='http://123.com',
         confirmed=True
